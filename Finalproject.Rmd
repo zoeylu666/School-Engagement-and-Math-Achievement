@@ -1,0 +1,319 @@
+---
+title: "School Engagement and Math Achievement"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+resource_files:
+- hsl09.csv
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(shiny)
+library(DT)
+library(gganimate)
+library(summarytools)
+
+dat <- read.csv("hsl09.CSV")
+
+dat <- dat %>%
+  rename(sex = X1SEX,
+       race=X1RACE,
+       duallang=X1DUALLANG,
+       fatheredu=X1PAR1EDU,
+       momedu=X1PAR2EDU,
+       Mathscale = X1TXMQUINT,
+       region = X1REGION,
+       fam_income = X1FAMINCOME,
+       math_utility = X1MTHUTI,
+       math_efficacy=X1MTHEFF,
+       math_interest =X1MTHINT,
+       stud_eduexp =X1STUEDEXPCT,
+       par_eduexp =X1PAREDEXPCT
+
+       )
+
+dat <- dat %>% mutate(sex = recode(sex,
+                             `1`="male",
+                             `2`="female"))
+dat <- dat %>% mutate(race = recode(race,
+                             `3`="Black",
+                             `4`="Hispanic",
+                             `5` = "Hispanic",
+                             `8` = "White"))
+
+dat <- dat %>% mutate(duallang = recode(duallang,
+                                        `1`= "Native Speaker",
+                                        `2` = "Non-native",
+                                        `3` = "Non-native"))
+
+dat <- dat %>% mutate(fatheredu =recode(fatheredu,
+                                       `1`= "HS Diploma or less",
+                                        `2` ="HS Diploma or less",
+                                       `3` = "Associate degree",
+                                       `4`= "Bachelors",
+                                       `5`= "Graduate Levels",
+                                       `7` = "Graduate Levels")) 
+                      
+dat <- dat %>% mutate(momedu =recode(momedu,
+                                       `1`= "HS Diploma or less",
+                                        `2` ="HS Diploma or less",
+                                       `3` = "Associate degree",
+                                       `4`= "Bachelors",
+                                       `5`= "Graduate Levels",
+                                       `7` = "Graduate Levels")) 
+                                            
+dat <- dat %>% mutate(Mathscale =recode(Mathscale,
+                                        `1`= "Scored Lowest",
+                                        `2`= "Scored Second Lowest",
+                                        `3`= "Scored Average",
+                                        `4`="Scored Above Average",
+                                        `5`= "Scored Highest"))
+dat <- dat %>% mutate(region = recode(region, 
+                                      `1` = "Northeast",
+                                       `2` = "Midwest",
+                                      `3` = "South",
+                                      `4` = "West"  ) )                                       
+ 
+dat <-  dat%>% mutate(fam_income = recode(fam_income,
+                                          `1` = "<=15k",
+                                          `2`="15k-35k",
+                                          `3`="35k-55k",
+                                           `4`= "55k-75k",
+                                          `5`= "75k-95k",
+                                          `6`="95k-115k",
+                                          `7`="115k-135k",
+                                          `8`= "135k-155k",
+                                          `9`="155k-175k",
+                                          `10`="175k-195k",
+                                          `11`="195k-215k",
+                                          `12`="215k-235k",
+                                          `13`="235k=<"))    
+
+dat <-  dat%>% mutate(stud_eduexp = recode(stud_eduexp,
+                                           `1` = "HS Diploma or less",
+                                           `2`= "HS Diploma or less",
+                                           `3`= "Associate or less",
+                                           `4`= "Associate or less",
+                                           `5`= "BA or less",
+                                           `6`= "BA or less",
+                                           `7`= "Graduate level",
+                                           `8`= "Graduate level",
+                                           `9`= "Graduate level",
+                                           `10`= "Graduate level",
+                                           `11`= "Undecided"))
+  
+dat <-  dat%>% mutate(par_eduexp = recode(par_eduexp,
+                                           `1` = "HS Diploma or less",
+                                           `2`= "HS Diploma or less",
+                                           `3`= "Associate or less",
+                                           `4`= "Associate or less",
+                                           `5`= "BA or less",
+                                           `6`= "BA or less",
+                                           `7`= "Graduate level",
+                                           `8`= "Graduate level",
+                                           `9`= "Graduate level",
+                                           `10`= "Graduate level",
+                                           `11`= "Undecided"))  
+
+
+dat$Mathscale <- factor(dat$Mathscale, levels=c('Scored Lowest', 'Scored Second Lowest', 'Scored Average', 'Scored Above Average', 'Scored Highest'))
+dat$stud_eduexp <- factor(dat$stud_eduexp, levels=c('HS Diploma or less', 'Associate or less', 'BA or less', 
+                                                    'Graduate level', 'Undecided'))
+dat$par_eduexp <- factor(dat$par_eduexp, levels=c('HS Diploma or less', 'Associate or less', 'BA or less', 
+                                                    'Graduate level', 'Undecided'))
+
+
+#display factor levels for region
+levels(dat$Mathscale )
+levels(dat$Mstud_eduexp)
+levels(dat$par_eduexp)
+```
+
+
+
+ Page 1
+==================
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Scatterplot: 9th graders' sense of school belonging (X1SCHOOLBEL) and School Engagement (X1SCHOOLENG) By Gender
+
+```{r}
+ggplot(dat, aes(x=X1SCHOOLBEL, y=X1SCHOOLENG, color = sex))+
+  geom_point()+
+  geom_smooth(method=lm, se=FALSE, fullrange=TRUE)+
+    scale_colour_hue()+
+  facet_wrap(vars(sex))+
+  labs(title = "The relationship between school belonging and school engagement",
+       x="School Belonging",
+       y="School Engagement")
+
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Chart B: Do students score higher on math if they have higher sense of school belonging?
+
+```{r}
+
+ggplot(dat, aes(Mathscale, X1SCHOOLBEL, fill = sex))+
+  geom_violin(position=position_dodge(1), trim=FALSE) +
+  scale_fill_brewer(palette="RdBu") + theme_minimal()+
+  scale_x_discrete(limits=c("Scored Lowest", "Scored Second Lowest", "Scored Average",
+                            "Scored Above Average", "Scored Highest"))+
+  labs(title = "Do students' sense of belonging affect their math achievement?",
+       x= "Math Achievement Levels",
+       y= "School Belonging")
+
+
+```
+
+### Chart C:Do students score higher on math if they are more engaged in school?
+
+```{r}
+ggplot(dat, aes(Mathscale, X1SCHOOLENG, fill = sex))+
+  geom_boxplot(position=position_dodge(1), trim=FALSE) +
+  scale_fill_brewer(palette="RdBu") + theme_minimal()+
+  scale_x_discrete(limits=c("Scored Lowest", "Scored Second Lowest", "Scored Average",
+                            "Scored Above Average", "Scored Highest"))+
+  labs(title = "Do levels of engagement in school affect their math achievement?",
+       x= "Math Achievement Levels",
+       y= "School Engagement")
+
+
+```
+
+Page 2
+==============
+
+Column {.sidebar data-width =100}
+-----------------
+```{r}
+
+Categorical.Variables = c("Mathscale", "stud_eduexp", "par_eduexp")
+selectInput("categorical_variable", 
+            label = "Select Categorical Variable:", choices = Categorical.Variables)
+```
+
+```{r}
+
+Numeric.Variables = c("math_utility", "math_efficacy", "math_interest")
+selectInput("numeric_variable", 
+            label = "Select Numeric Variable:", choices = Numeric.Variables)
+```
+
+Column 
+-------------------------------
+
+###Boxplot Shows the Relationship Between Categorical and Numeric Variables
+
+```{r}
+renderPlotly({
+   plot_ly(dat,
+              x = ~dat[[input$numeric_variable]],
+              color = ~dat[[input$categorical_variable]],
+              colors = "Paired",
+              type = "box") %>%
+  layout(title = "",
+         xaxis = list(title = "" ,
+                      zeroline = FALSE))
+})
+```
+
+
+Column {.tabset .tabset-fade}
+-------------------------------------
+
+
+### Bar Chart: Categorical Variables
+
+```{r}
+
+renderPlotly({
+  dat %>%
+    count(var = dat[[input$categorical_variable]], name = "count") %>%
+    plot_ly( x = ~var, y = ~ count, type = "bar", marker = list(color = '#008ae6',
+                           line = list(color = '#008ae6', width = 2)), hoverinfo = "x+y") %>%
+    add_text(text = ~paste0( " (",   scales::percent(count/sum(count)),")"), 
+           textposition = "bottom", 
+           textfont = list(size = 12, color = "white"), 
+           showlegend = FALSE) %>%
+    layout(xaxis = list(title = ""), yaxis = list(title = ""))
+    
+})
+```
+
+### Histogram: Numeric Variables
+```{r}
+renderPlotly({
+  plot_ly(x = dat[[input$numeric_variable]], type = "histogram",  marker = list(color = "#008ae6",
+                            line = list(color = "darkgray",
+                                        width = 1)))
+})
+```
+
+Page 3
+==============
+
+Column {data-width=800}
+-------------------------------------
+    
+### Scatter plot of family income 
+    
+```{r}
+
+p <- ggplot(dat,
+            aes(x =math_efficacy , y = X1TXMTH, fill = region)) +
+              geom_point() +
+  geom_smooth(method = lm) +
+    labs(title = "The relationship between students' math efficacy and their math performance",
+        y="math scores", x="Math Efficacy")
+  
+p <- p+facet_wrap(~region)
+
+ggplotly(p)
+```
+   
+Column {data-width=200}
+-------------------------------------
+   
+###  Numbers of Students Planning to Take AP Calcus
+
+```{r}
+renderValueBox({
+valueBox(1672, icon = "fa-book-open")
+})
+```   
+ 
+### Numbers of Students Planning to Take IB Maths
+
+```{r}
+renderValueBox({
+valueBox(573, icon = "fa-book-open")
+})
+
+
+```
+
+### Percent of Students in AVID Program
+
+```{r}
+gauge(2, min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(80, 100), warning = c(40, 79), danger = c(0, 39)
+))
+```
+
+### Percent of Students in MESA Program
+
+```{r}
+gauge(2.13, min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(80, 100), warning = c(40, 79), danger = c(0, 39)
+))
+```
